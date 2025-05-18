@@ -63,7 +63,17 @@
         const nameInput = document.getElementById('name');
         const passwordInput = document.getElementById('password');
         const messageInput = document.getElementById('message');
-        const API_ENDPOINT = 'api.php'; // サーバーサイドのAPIエンドポイント
+        const API_ENDPOINT = 'api.php';
+
+        const storedName = localStorage.getItem('bbsName');
+        const storedPassword = localStorage.getItem('bbsPassword');
+
+        if (storedName) {
+            nameInput.value = storedName;
+        }
+        if (storedPassword) {
+            passwordInput.value = storedPassword;
+        }
 
         async function addPost() {
             const name = nameInput.value.trim();
@@ -71,6 +81,9 @@
             const message = messageInput.value.trim();
 
             if (name && password && message) {
+                localStorage.setItem('bbsName', name);
+                localStorage.setItem('bbsPassword', password);
+
                 const formData = new FormData();
                 formData.append('name', name);
                 formData.append('password', password);
@@ -85,10 +98,8 @@
                     if (response.ok) {
                         const data = await response.json();
                         alert(data.message);
-                        nameInput.value = '';
-                        passwordInput.value = '';
                         messageInput.value = '';
-                        loadPosts(); // 投稿後に掲示板を更新
+                        loadPosts();
                     } else {
                         const errorData = await response.json();
                         alert(`投稿に失敗しました: ${errorData.error || '不明なエラー'}`);
@@ -107,7 +118,7 @@
                 const response = await fetch(API_ENDPOINT);
                 if (response.ok) {
                     const posts = await response.json();
-                    postList.innerHTML = ''; // 既存の投稿をクリア
+                    postList.innerHTML = '';
                     posts.forEach(post => {
                         const postDiv = document.createElement('div');
                         postDiv.classList.add('post');
@@ -129,7 +140,6 @@
         // 初回ロード時に投稿を読み込む
         loadPosts();
 
-        // HTMLエスケープ処理（XSS対策）
         function escapeHtml(unsafe) {
             return unsafe
                  .replace(/&/g, "&amp;")
