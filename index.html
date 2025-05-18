@@ -90,15 +90,55 @@
 
   <h2>投稿一覧</h2>
   <div id="posts">
-    </div>
+    <p>投稿を読み込み中...</p>
+  </div>
 
   <script>
-    const WEB_APP_URL = '1tplQl_xrBwlNrjGWNAqT-C_roSTQh7dtuEFCbpTHLYA'; // ここにコピーした Web アプリケーションのURL を貼り付けます
+    const WEB_APP_URL = '1tplQl_xrBwlNrjGWNAqT-C_roSTQh7dtuEFCbpTHLYA'; // ここにあなたの Web アプリケーションのURL を貼り付けてください
     const COOKIE_EXPIRY_DAYS = 30;
 
-    function setCookie(name, value, days) { /* ... (以前の回答の setCookie 関数) ... */ }
-    function getCookie(name) { /* ... (以前の回答の getCookie 関数) ... */ }
-    function crc32(str) { /* ... (以前の回答の crc32 関数と makeCRCTable 関数) ... */ }
+    function setCookie(name, value, days) {
+      let expires = "";
+      if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+      }
+      document.cookie = name + "=" + (value || "") + expires + "; path=/";
+    }
+
+    function getCookie(name) {
+      const nameEQ = name + "=";
+      const ca = document.cookie.split(';');
+      for(let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+      }
+      return null;
+    }
+
+    function crc32(str) {
+      let crc = 0 ^ (-1);
+      for (let i = 0; i < str.length; i++) {
+        crc = (crc >>> 8) ^ (crcTable[(crc ^ str.charCodeAt(i)) & 0xFF]);
+      }
+      return (crc ^ (-1)) >>> 0;
+    }
+
+    function makeCRCTable() {
+      let c;
+      const crcTable = [];
+      for(let n = 0; n < 256; n++){
+          c = n;
+          for(let k = 0; k < 8; k++){
+              c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+          }
+          crcTable[n] = c;
+      }
+      return crcTable;
+    }
+
     const crcTable = makeCRCTable();
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -114,12 +154,12 @@
         nameInput.value = savedName;
       }
 
-      // 投稿を送信する関数
+      // 投稿を送信する処理
       submitButton.addEventListener('click', async function() {
         const name = nameInput.value;
         const password = passwordInput.value;
         const message = messageInput.value;
-        const id = crc32(password).toString(); // IDとしてハッシュ値を使用
+        const id = crc32(password).toString(); // IDとしてパスワードのハッシュ値を使用
 
         setCookie('username', name, COOKIE_EXPIRY_DAYS);
 
@@ -136,9 +176,10 @@
           });
 
           if (response.ok || response.status === 0) { // status 0 は no-cors モードでの成功
-            alert('投稿しました！ページをリロードして反映を確認してください。');
+            alert('投稿しました！');
             messageInput.value = '';
             passwordInput.value = '';
+            loadPosts(); // 投稿後に投稿リストを再読み込み
           } else {
             alert('投稿に失敗しました。');
             console.error('Error posting data:', response.status);
@@ -149,13 +190,13 @@
         }
       });
 
-      // 投稿を読み込んで表示する関数
+      // スプレッドシートから投稿を読み込んで表示する処理
       async function loadPosts() {
         try {
           const response = await fetch(WEB_APP_URL + '?action=read');
           if (response.ok) {
             const posts = await response.json();
-            postsDiv.innerHTML = '';
+            postsDiv.innerHTML = ''; // 既存の投稿をクリア
             posts.forEach(post => {
               const postDiv = document.createElement('div');
               postDiv.classList.add('post');
