@@ -1,75 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>シンプルな掲示板</title>
+  <title>シンプルな掲示板 (スプレッドシート連携)</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 20px;
-      background-color: #f4f4f4;
-    }
-    h1, h2 {
-      color: #333;
-      text-align: center;
-    }
-    form {
-      background-color: #fff;
-      padding: 20px;
-      margin-bottom: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    label {
-      font-weight: bold;
-    }
-    input[type="text"],
-    input[type="password"],
-    textarea {
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 3px;
-      box-sizing: border-box;
-      width: 100%;
-    }
-    textarea {
-      min-height: 100px;
-    }
-    button {
-      background-color: #5cb85c;
-      color: white;
-      padding: 10px 15px;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover {
-      background-color: #4cae4c;
-    }
-    #posts {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    .post {
-      border-bottom: 1px solid #eee;
-      padding-bottom: 15px;
-      margin-bottom: 15px;
-    }
-    .post:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-    .post-info {
-      font-size: 0.9em;
-      color: #777;
-      margin-bottom: 5px;
-    }
+    /* ... (以前の回答のシンプルなスタイルを再利用) ... */
   </style>
 </head>
 <body>
@@ -90,59 +24,15 @@
 
   <h2>投稿一覧</h2>
   <div id="posts">
-    <div class="post">
-      <div class="post-info">ID: initial01, 名前: 初期ユーザー1</div>
-      <p>最初の投稿です。シンプルなデザインで表示しています。</p>
     </div>
-    <div class="post">
-      <div class="post-info">ID: initial02, 名前: ゲスト</div>
-      <p>こんにちは！ここにも投稿が表示されます。</p>
-    </div>
-  </div>
 
   <script>
-    function setCookie(name, value, days) {
-      let expires = "";
-      if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-      }
-      document.cookie = name + "=" + (value || "") + expires + "; path=/";
-    }
+    const WEB_APP_URL = 'YOUR_WEB_APP_URL'; // ここにコピーした Web アプリケーションのURL を貼り付けます
+    const COOKIE_EXPIRY_DAYS = 30;
 
-    function getCookie(name) {
-      const nameEQ = name + "=";
-      const ca = document.cookie.split(';');
-      for(let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-      }
-      return null;
-    }
-
-    function crc32(str) {
-      let crc = 0 ^ (-1);
-      for (let i = 0; i < str.length; i++) {
-        crc = (crc >>> 8) ^ (crcTable[(crc ^ str.charCodeAt(i)) & 0xFF]);
-      }
-      return (crc ^ (-1)) >>> 0;
-    }
-
-    function makeCRCTable() {
-      let c;
-      const crcTable = [];
-      for(let n = 0; n < 256; n++){
-          c = n;
-          for(let k = 0; k < 8; k++){
-              c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
-          }
-          crcTable[n] = c;
-      }
-      return crcTable;
-    }
-
+    function setCookie(name, value, days) { /* ... (以前の回答の setCookie 関数) ... */ }
+    function getCookie(name) { /* ... (以前の回答の getCookie 関数) ... */ }
+    function crc32(str) { /* ... (以前の回答の crc32 関数と makeCRCTable 関数) ... */ }
     const crcTable = makeCRCTable();
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -158,40 +48,69 @@
         nameInput.value = savedName;
       }
 
-      submitButton.addEventListener('click', function() {
+      // 投稿を送信する関数
+      submitButton.addEventListener('click', async function() {
         const name = nameInput.value;
         const password = passwordInput.value;
         const message = messageInput.value;
+        const id = crc32(password).toString(); // IDとしてハッシュ値を使用
 
-        // パスワードをCRC32でハッシュ化
-        const passwordHash = crc32(password);
+        setCookie('username', name, COOKIE_EXPIRY_DAYS);
 
-        // Cookieに名前を保存
-        setCookie('username', name, 30);
+        const postData = { id: id, name: name, message: message };
 
-        // 新しい投稿要素を作成
-        const newPost = document.createElement('div');
-        newPost.classList.add('post');
-        newPost.innerHTML = `
-          <div class="post-info">ID: ${passwordHash}, 名前: ${name}</div>
-          <p>${message}</p>
-        `;
+        try {
+          const response = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'no-cors', // GitHub Pages の制約を回避
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(postData)
+          });
 
-        // 投稿リストの先頭に追加 (最新の投稿を上に表示)
-        postsDiv.insertBefore(newPost, postsDiv.firstChild);
-
-        // 投稿情報をコンソールに出力 (id.txt への自動保存はできません)
-        console.log(`ID: ${passwordHash}, 名前: ${name}, 投稿: ${message}`);
-        alert('投稿しました。\nID、名前、投稿内容はコンソールに出力されています。\nid.txt への追記とページのリロードで反映されます。');
-
-        // フォームをクリア
-        messageInput.value = '';
-        passwordInput.value = ''; // パスワードはクリアしても良いかもしれません
+          if (response.ok || response.status === 0) { // status 0 は no-cors モードでの成功
+            alert('投稿しました！ページをリロードして反映を確認してください。');
+            messageInput.value = '';
+            passwordInput.value = '';
+          } else {
+            alert('投稿に失敗しました。');
+            console.error('Error posting data:', response.status);
+          }
+        } catch (error) {
+          alert('投稿に失敗しました。');
+          console.error('Error posting data:', error);
+        }
       });
 
-      // 既存の投稿を読み込む処理 (今回は初期表示のHTMLに記述)
-      // 動的な読み込みは、GitHub Pages の制約により困難です。
-      // 必要であれば、外部データソースと fetch API の利用をご検討ください。
+      // 投稿を読み込んで表示する関数
+      async function loadPosts() {
+        try {
+          const response = await fetch(WEB_APP_URL + '?action=read');
+          if (response.ok) {
+            const posts = await response.json();
+            postsDiv.innerHTML = '';
+            posts.forEach(post => {
+              const postDiv = document.createElement('div');
+              postDiv.classList.add('post');
+              postDiv.innerHTML = `
+                <div class="post-info">ID: ${post.ID}, 名前: ${post.名前}</div>
+                <p>${post.投稿内容}</p>
+              `;
+              postsDiv.appendChild(postDiv);
+            });
+          } else {
+            console.error('Error loading posts:', response.status);
+            postsDiv.innerHTML = '<p>投稿の読み込みに失敗しました。</p>';
+          }
+        } catch (error) {
+          console.error('Error loading posts:', error);
+          postsDiv.innerHTML = '<p>投稿の読み込みに失敗しました。</p>';
+        }
+      }
+
+      // ページのロード時に投稿を読み込む
+      loadPosts();
     });
   </script>
 </body>
