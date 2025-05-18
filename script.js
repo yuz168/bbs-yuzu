@@ -1,4 +1,4 @@
-const SHEET_NAME = 'シート1'; // シート名に合わせて変更してください
+const SHEET_NAME = 'シート1'; // あなたのシート名に合わせて変更してください
 const ID_COLUMN = 1;
 const NAME_COLUMN = 2;
 const MESSAGE_COLUMN = 3;
